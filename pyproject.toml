@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "auto-wiki"
+version = "0.1.0"
+description = ""
+authors = ["Jef Packer <jef@sendit.ai>"]
+readme = "README.md"
+packages = [{include = "auto_wiki"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+langchain = "^0.0.153"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
