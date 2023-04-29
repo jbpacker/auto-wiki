@@ -9,7 +9,22 @@ packages = [{include = "auto_wiki"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 langchain = "^0.0.153"
+pinecone-client = "^2.2.1"
+faiss-cpu = "^1.7.4"
+wandb = "^0.15.0"
+playwright = "^1.32.1"
+bs4 = "^0.0.1"
+nest-asyncio = "^1.5.6"
+pandas = "^2.0.1"
+arxiv = "^1.4.7"
+openai = "^0.27.5"
+google-api-python-client = "^2.86.0"
+tiktoken = "^0.3.3"
 
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.3.0"
+ipykernel = "^6.22.0"
 
 [build-system]
 requires = ["poetry-core"]
