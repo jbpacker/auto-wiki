@@ -126,7 +126,7 @@ class MemorizeTool(BaseTool):
         docs = self.text_splitter.split_documents(docs)
         self.memory.add_documents(docs)
 
-        return "Done."
+        return f"{url} stored in memory!"
 
     def _arun(self, url: str) -> str:
         raise NotImplementedError
@@ -137,8 +137,8 @@ class RecallTool(BaseTool):
     description: str = (
         "Use this to recall information from memory database."
         " It contains information about many papers,"
-        " so it may not be specific to a single paper."
-        " Input is the information to recall."
+        " so you MUST be specific in the input about which paper to recall as well as information from the paper."
+        " Input is a question or topic to find in the memory."
     )
     memory: VectorStore
     refine: RefineDocumentsChain
@@ -172,7 +172,7 @@ class RecallTool(BaseTool):
 class UrlSummaryTool(BaseTool):
     """A tool for summarizing a website for specific information."""
 
-    name = "url-summary"
+    name = "url_summary"
     description = (
         "Use this when you need to summarize a website for specific information."
         " This tool generates more specific information than a web search."

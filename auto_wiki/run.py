@@ -7,7 +7,6 @@ from langchain.chains.qa_with_sources.loading import load_qa_with_sources_chain
 from langchain.chat_models import ChatOpenAI
 from langchain.docstore import InMemoryDocstore
 from langchain.embeddings import OpenAIEmbeddings
-from langchain.experimental import AutoGPT
 from langchain.tools.arxiv.tool import ArxivQueryRun
 from langchain.tools.file_management.read import ReadFileTool
 from langchain.tools.file_management.list_dir import ListDirectoryTool
@@ -17,7 +16,8 @@ from langchain.vectorstores.base import VectorStore
 from langchain.vectorstores import FAISS, Pinecone
 from wandb.integration.langchain import WandbTracer
 
-
+from auto_wiki_gpt import AutoWikiGPT
+from chains import TodoChain
 from prompts import AI_NAME, AI_ROLE
 from tools import WebpageQATool, MemorizeTool, RecallTool, UrlSummaryTool
 from utils import get_creds
@@ -58,9 +58,18 @@ def make_tools(memory: VectorStore):
     tools.append(ReadFileTool(root_dir="./docs"))
     tools.append(ListDirectoryTool(root_dir="./docs"))
     tools.append(ArxivQueryRun(api_wrapper=ArxivAPIWrapper()))
-    tools.append(MemorizeTool(memory=memory))
-    tools.append(RecallTool.from_llm(llm=llm, memory=memory))
+    # tools.append(MemorizeTool(memory=memory))
+    # tools.append(RecallTool.from_llm(llm=llm, memory=memory))
     tools.append(UrlSummaryTool.from_llm(llm=llm))
+
+    # This one must be last to include the other tools in the prompt.
+    tools.append(
+        Tool(
+            name="todo",
+            func=TodoChain.from_llm(llm=llm, other_tools=tools).run,
+            description="Use this to create a todo list. The input is the topic of the todo list, and this command will generate the list.",
+        )
+    )
 
     return tools
 
@@ -70,22 +79,21 @@ def main():
     memory = create_memory(in_memory=True, keys=keys)
     tools = make_tools(memory)
 
-    agent = AutoGPT.from_llm_and_tools(
-        ai_name=AI_NAME,
-        ai_role=AI_ROLE,
+    agent = AutoWikiGPT.from_llm_and_tools(
         tools=tools,
         llm=ChatOpenAI(model_name="gpt-4", temperature=0, request_timeout=180),
-        memory=memory.as_retriever(search_kwargs={"k": 8}),
+        vectorstore=memory.as_retriever(search_kwargs={"k": 8}),
+        verbose=False,  # prints out prompts to models
     )
 
-    document = "https://arxiv.org/abs/2303.17760"
+    document = "https://arxiv.org/pdf/2303.16199.pdf"
 
     prompt = (
         "summarize and integrate the following document into the resource wiki: "
         + document
     )
 
-    agent.run([prompt])
+    agent({"objective": prompt})
 
 
 if __name__ == "__main__":
