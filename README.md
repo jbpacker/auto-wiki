@@ -21,7 +21,7 @@ Auto-Wiki uses Poetry for dependency management. To install the project, follow 
 2. Clone the repository:
 
    ```
-   git clone https://github.com/yourusername/auto-wiki.git
+   git clone https://github.com/jbpacker/auto-wiki.git
    ```
 
 3. Navigate to the project directory:
