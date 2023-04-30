@@ -138,9 +138,14 @@ class AutoWikiGPTPrompt(BaseChatPromptTemplate, BaseModel):
     def format_messages(self, **kwargs: Any) -> List[BaseMessage]:
         task = kwargs["task"]
         objective = kwargs["objective"]
-        memory = kwargs["memory"]
-        messages = kwargs["messages"]
+        memory: VectorStoreRetriever = kwargs["memory"]
+        previous_messages = kwargs["messages"]
 
+        final_message = SystemMessage(
+            content="Create a command to do the CURRENT TASK. Remember to use the response format. Begin!\n"
+        )
+
+        # Step 1: Add initial prompt
         base_prompt = SystemMessage(
             content=self.construct_full_prompt(task=task, objective=objective)
         )
@@ -150,8 +155,11 @@ class AutoWikiGPTPrompt(BaseChatPromptTemplate, BaseModel):
         used_tokens = self.token_counter(base_prompt.content) + self.token_counter(
             time_prompt.content
         )
-        memory: VectorStoreRetriever = memory
-        relevant_docs = memory.get_relevant_documents(task)
+
+        # Step 2: Add memory to prompt
+        relevant_docs = memory.get_relevant_documents(
+            task + objective + str(previous_messages[-10:])
+        )
         relevant_memory = [d.page_content for d in relevant_docs]
         relevant_memory_tokens = sum(
             [self.token_counter(doc) for doc in relevant_memory]
@@ -166,14 +174,24 @@ class AutoWikiGPTPrompt(BaseChatPromptTemplate, BaseModel):
             f"from your past:\n{relevant_memory}\n\n"
         )
         memory_message = SystemMessage(content=content_format)
-        used_tokens += len(memory_message.content)
-        final_message = SystemMessage(
-            content="Create a command to do the CURRENT TASK. Remember to use the response format. Begin!\n"
-        )
+        used_tokens += self.token_counter(memory_message.content)
+        used_tokens += self.token_counter(final_message.content)
+
+        # Step 3: Add previous messages to prompt
+        historical_messages: List[BaseMessage] = []
+        message_tokens = 0
+        for message in previous_messages[-10:][::-1]:
+            message_tokens += self.token_counter(message.content)
+            if used_tokens + message_tokens > 7200:
+                break
+            historical_messages = [message] + historical_messages
+
+        # Step 4: Construct the prompt
         messages: List[BaseMessage] = [
             base_prompt,
             time_prompt,
             memory_message,
-            final_message,
         ]
+        messages += historical_messages
+        messages.append(final_message)
         return messages

@@ -21,8 +21,9 @@ class InitialSummaryChain(LLMChain):
         {document}
         TOPIC:
         {topic}
-        Refine the document for any information about the topic.
-        Snippets that matches the topic NEED TO BE quoted verbatim in the summary.
+        Summarize the document for information about the topic.
+        If a summary for a document is desired, then summarize everything with a matching document for key points and a 1-2 sentence conclusion.
+        Snippets that match the topic NEED TO BE quoted verbatim in the summary.
         If nothing in the doucment relates to the topic then write "None".
         SUMMARY:
         """
@@ -48,6 +49,7 @@ class ContinueSummaryChain(LLMChain):
         SUMMARY:
         {summary}
         You are combining many documents into a summary about a topic. Refine the summary into a combined summary by including new information about the topic in the document.
+        If a summary for a document is desired, then summarize everything with a matching document for key points and a 1-2 sentence conclusion.
         Quoted snippets in the summary MUST be quoted verbatim in the combined summary.
         Snippets that matches the topic in the document NEED TO BE quoted verbatim in the summary.
         If there is nothing in the doucment about the topic then copy the summary, or repeat None if the summary is currently None.

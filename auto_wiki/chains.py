@@ -62,7 +62,8 @@ class TaskCreationChain(LLMChain):
             "This result was based on this task description: \n{task_description}\n"
             "previously you've completed the following tasks: \n{completed_tasks}\n"
             "These are your saved incomplete tasks: \n{incomplete_tasks}\n"
-            "Make sure new tasks do not overlap with incomplete and completed tasks."
+            "New tasks SHALL NOT overlap with incomplete and completed tasks. "
+            "Do not repeat incomplete tasks! "
             'Use the "Finish" command when you are done. '
             "Based on the result, create new tasks to be completed "
             "by the AI system that do not overlap with incomplete tasks. "
@@ -126,19 +127,22 @@ class TaskCriticChain(LLMChain):
     ) -> LLMChain:
         task_critic_template = (
             "You are a critic AI that works with other AIs to complete an objective by using a task list. "
-            "As the critic you must give feedback about the task list in order to keep the list as small as possible and relevant to completing the ultimate objective. "
+            "As the critic you must give feedback about the task list in order to keep the list as small and relevant to completing the ultimate objective. "
             "You need to make sure all irrelevant tasks are removed. "
-            "For example, If the objective is to make a sandwich, then the task 'buy bread' is irrelevant. "
-            "If the objective is to write documentation, then the tasks to make a video or promote the documentation are irrelevant. "
+            # "For example, If the objective is to make a sandwich, then the task 'buy bread' is irrelevant. "
+            # "If the objective is to write documentation, then the tasks to make a video or promote the documentation are irrelevant. "
             "You only have access to the following tools. Make sure all tasks use these tools.\n"
             + get_tool_prompt(tools)
-            + "Each todo item needs to use EXACTLY one command. Two commands CANNOT be combined into one task. "
+            + "Each task needs to use EXACTLY one command. Two commands CANNOT be combined into one task. "
             "Only give feedback about the task list. Do not rewrite the task list. "
             "The ultimate objective is:\n{objective}\n"
             "Previously you completed the following tasks: \n{completed_tasks}\n"
             "The new task list is: \n{task_names}\n"
             "New tasks should NOT be the same as any of the completed tasks. "
-            "Write a critique of the task list as a short paragraph. Include actions to improve the task list such as items to remove or combine. Be specific about which task as numbers may repeat."
+            "Write a critique of the task list as a short and concise paragraph. "
+            "Include actions to improve the task list such as items to remove or combine. "
+            "Be specific about which task as numbers may repeat. "
+            'If all tasks are relevant to the objective, then say "looks good".'
         )
         prompt = PromptTemplate(
             template=task_critic_template,

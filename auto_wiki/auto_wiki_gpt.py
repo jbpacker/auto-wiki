@@ -28,7 +28,6 @@ from langchain.tools.human.tool import HumanInputRun
 from langchain.vectorstores.base import VectorStoreRetriever
 
 from chains import (
-    TodoChain,
     TaskCriticChain,
     TaskPrioritizationChain,
     TaskCreationChain,
@@ -220,7 +219,8 @@ class AutoWikiGPT(Chain, BaseModel):
             action = self.output_parser.parse(assistant_reply)
             tools = {t.name: t for t in self.tools}
             if action.name == FINISH_NAME:
-                return action.args["response"]
+                result = Dict[str, Any] = {"result": action.args["response"]}
+                return result
             if action.name in tools:
                 tool = tools[action.name]
                 try:
@@ -244,25 +244,30 @@ class AutoWikiGPT(Chain, BaseModel):
                 )
             self.print_task_result(result)
             self.completed_tasks.append(task)
-            current_completed_tasks = ", ".join(
+            completed_tasks_str = ", ".join(
                 [t["task_name"] for t in self.completed_tasks]
             )
-            full_result = assistant_reply + "\n\n" + result
 
             # Step 4: Store the results
+            memory_to_add = (
+                f"Assistant Reply: {assistant_reply} " f"\nResult: {result} "
+            )
             result_id = f'result_{task["task_id"]}'
             self.vectorstore.add_documents(
                 [
                     Document(
-                        page_content=full_result,
-                        metadata={"task": task["task_name"]},
+                        page_content=memory_to_add,
+                        metadata={"source": "thought", "task": task["task_name"]},
                         ids=result_id,
                     )
                 ]
             )
+            message_to_add = f"{assistant_reply}\nResult: {result}"
+            self.full_message_history.append(SystemMessage(content=message_to_add))
+
             # Step 5: Create new tasks and reprioritize task list
             new_tasks = self.get_new_tasks(
-                objective, task["task_name"], current_completed_tasks, full_result
+                objective, task["task_name"], completed_tasks_str, memory_to_add
             )
             for new_task in new_tasks:
                 self.task_id_counter += 1
@@ -273,7 +278,7 @@ class AutoWikiGPT(Chain, BaseModel):
             # Step 6: Criticize the results
             critique = self.task_critic_chain.run(
                 task_names=", ".join([t["task_name"] for t in self.task_list]),
-                completed_tasks=current_completed_tasks,
+                completed_tasks=completed_tasks_str,
                 objective=objective,
             )
             self.print_critic_result(critique)
@@ -282,24 +287,10 @@ class AutoWikiGPT(Chain, BaseModel):
             self.task_list = deque(
                 self.prioritize_tasks(
                     this_task_id=this_task_id,
-                    completed_tasks=current_completed_tasks,
+                    completed_tasks=completed_tasks_str,
                     critique=critique,
                     objective=objective,
                 )
             )
 
-            memory_to_add = (
-                f"Assistant Reply: {assistant_reply} " f"\nResult: {result} "
-            )
-            if self.feedback_tool is not None:
-                feedback = f"\n{self.feedback_tool.run('Input: ')}"
-                if feedback in {"q", "stop"}:
-                    print("EXITING")
-                    return "EXITING"
-                memory_to_add += feedback
-
-            self.vectorstore.add_documents([Document(page_content=memory_to_add)])
-            self.full_message_history.append(SystemMessage(content=result))
-
-            # Discontinue if continuous limit is reached
             loop_count += 1

@@ -19,8 +19,7 @@ from wandb.integration.langchain import WandbTracer
 
 from auto_wiki_gpt import AutoWikiGPT
 from chains import TodoChain
-from prompts import AI_NAME, AI_ROLE
-from tools import WebpageQATool, MemorizeTool, RecallTool, UrlSummaryTool
+from tools import WebpageQATool, MemorizeTool, RecallTool, UrlQueryTool
 from utils import get_creds
 
 
@@ -74,9 +73,11 @@ def make_tools(memory: VectorStore):
         )
     )
     tools.append(ArxivQueryRun(api_wrapper=ArxivAPIWrapper()))
-    # tools.append(MemorizeTool(memory=memory))
-    # tools.append(RecallTool.from_llm(llm=llm, memory=memory))
-    tools.append(UrlSummaryTool.from_llm(llm=llm))
+    tools.append(MemorizeTool(memory=memory))
+    tools.append(RecallTool.from_llm(llm=llm, memory=memory, verbose=False))
+    tools.append(
+        UrlQueryTool.from_llm(llm=fast_llm, chunk_size=3000, chunk_overlap=100)
+    )
 
     # This one must be last to include the other tools in the prompt.
     tools.append(
@@ -103,7 +104,7 @@ def main(arxiv_link: str):
     )
 
     prompt = (
-        "Summarize this document and integrate it into the wiki in the same format as the rest of the wiki. Document: "
+        'Summarize this document and integrate it into the wiki by following the documentation template file "example.md." Document: '
         + arxiv_link
     )
 

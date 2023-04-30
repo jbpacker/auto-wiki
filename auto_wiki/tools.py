@@ -3,6 +3,7 @@ from __future__ import annotations
 from bs4 import BeautifulSoup
 from typing import Dict, List, Optional, Any
 from pydantic import Field
+import tiktoken
 
 import asyncio
 import nest_asyncio
@@ -14,6 +15,7 @@ from typing import Optional
 from langchain.agents import tool
 from langchain.agents.agent_toolkits.pandas.base import create_pandas_dataframe_agent
 from langchain.chains.combine_documents.refine import RefineDocumentsChain
+from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain.chains.qa_with_sources.loading import BaseCombineDocumentsChain
 from langchain.chat_models import ChatOpenAI
 from langchain.document_loaders import PyPDFLoader
@@ -66,12 +68,18 @@ def browse_web_page(url: str) -> str:
     return run_async(async_load_playwright(url))
 
 
+def _len_tokens_gpt(text: str) -> int:
+    # gpt-4 and gpt-3.5-turbo use the same encoder
+    enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
+    tokenized_text = enc.encode(text)
+    return len(tokenized_text)
+
+
 def _get_text_splitter():
     return RecursiveCharacterTextSplitter(
-        # Set a really small chunk size, just to show.
-        chunk_size=1000,
-        chunk_overlap=40,
-        length_function=len,
+        chunk_size=800,
+        chunk_overlap=30,
+        length_function=_len_tokens_gpt,
     )
 
 
@@ -118,7 +126,11 @@ class MemorizeTool(BaseTool):
     """TODO: check for duplicates"""
 
     name = "memorize"
-    description = "Read all text from a url and store in memory database. Use this first so information is loaded into memory!"
+    description = (
+        "Read all text from a url and store in memory database. "
+        "Use this FIRST so all information information is loaded "
+        "into memory and accessible to all your AI components!"
+    )
     text_splitter: RecursiveCharacterTextSplitter = Field(
         default_factory=_get_text_splitter
     )
@@ -146,17 +158,20 @@ class MemorizeTool(BaseTool):
 class RecallTool(BaseTool):
     name: str = "recall"
     description: str = (
-        "Use this to recall information from memory database."
-        " It contains information about many papers,"
-        " so you MUST be specific in the input about which paper to recall as well as information from the paper."
-        " Input is a question or topic to find in the memory."
+        "Use this to recall information from the memory database. "
+        "Memory includes your thoughts and information about many documents, "
+        "so you MUST be specific and descriptive in the input about which paper and information to recall. "
+        'For example, instead of "summary of paper", try "summary and key points in vaccine.pdf on covid-19 vaccine efficacy" '
+        "Input is a query for the memory database."
     )
     memory: VectorStore
-    refine: RefineDocumentsChain
+    combine: BaseCombineDocumentsChain
 
     def _run(self, to_recall: str) -> str:
+        # ~800 tokens per doc * k=8 = 6400 tokens (enough for gpt-4)
         docs = self.memory.similarity_search(to_recall, k=8)
-        result = self.refine.combine_docs(topic=to_recall, docs=docs)
+        print(docs)
+        result = self.combine.combine_docs(topic=to_recall, docs=docs)
         return result[0]
 
     async def _arun(self, to_recall: str) -> str:
@@ -164,31 +179,45 @@ class RecallTool(BaseTool):
 
     @classmethod
     def from_llm(
-        cls, llm: BaseLLM, memory: VectorStore, return_intermediate_steps: bool = False
+        cls,
+        llm: BaseLLM,
+        memory: VectorStore,
+        return_intermediate_steps: bool = False,
+        verbose: bool = True,
     ) -> RecallTool:
         init_refine = InitialSummaryChain.from_llm(llm=llm)
-        continue_refine = ContinueSummaryChain.from_llm(llm=llm)
 
-        refine = RefineDocumentsChain(
-            initial_llm_chain=init_refine,
-            refine_llm_chain=continue_refine,
+        # Refine takes WAY longer to run because it runs the LLM for each document.
+        # continue_refine = ContinueSummaryChain.from_llm(llm=llm)
+        # refine = RefineDocumentsChain(
+        #     initial_llm_chain=init_refine,
+        #     refine_llm_chain=continue_refine,
+        #     document_variable_name="document",
+        #     initial_response_name="summary",
+        #     return_intermediate_steps=return_intermediate_steps,
+        #     verbose=verbose,
+        # )
+        stuff = StuffDocumentsChain(
+            llm_chain=init_refine,
             document_variable_name="document",
-            initial_response_name="summary",
-            return_intermediate_steps=return_intermediate_steps,
+            verbose=verbose,
         )
 
-        return cls(memory=memory, refine=refine)
+        return cls(
+            memory=memory,
+            # combine=refine,
+            combine=stuff,
+        )
 
 
-class UrlSummaryTool(BaseTool):
-    """A tool for summarizing a website for specific information."""
+class UrlQueryTool(BaseTool):
+    """A tool for querying a website for specific information."""
 
-    name = "url_summary"
+    name = "url_query"
     description = (
-        "Use this when you need to summarize a website for specific information."
-        " This tool generates more specific information than a web search."
-        ' Input is json with two keys: "url" and "topic".'
-        ' "url" is the url of the website and "data" is the topic you want to summarize.'
+        "Use this when you need to skim a website or pdf link to query for specific information."
+        ' Input is json with two keys: "url" and "query".'
+        ' "url" is the url of the website and "query" is the specific information you\'re looking for.'
         # NOTE: These examples are difficult to include in the prompt due to the curly braces.
         # For example `{"url":"https://www.python.com","topic","main function"}` will search python.com for information about the main function.
         # Another example `{"url":"https://www.reddit.com/","topic":"top post"}` will search reddit for the top post."""
@@ -215,7 +244,7 @@ class UrlSummaryTool(BaseTool):
         return tool
 
     # This is for Auto-GPT where it always gives a dict
-    def _run(self, url: str, topic: str) -> str:
+    def _run(self, url: str, query: str) -> str:
         if url[-3:] == "pdf":
             try:
                 loader = PyPDFLoader(url)
@@ -230,7 +259,7 @@ class UrlSummaryTool(BaseTool):
             except:
                 return "Unable to load website."
 
-        return self.refine_chain.run(**{"document": text, "topic": topic})
+        return self.refine_chain.run(**{"document": text, "topic": query})
 
     async def _arun(self, input: str) -> str:
         raise NotImplementedError
