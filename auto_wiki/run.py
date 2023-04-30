@@ -52,7 +52,8 @@ def make_tools(memory: VectorStore):
     llm = ChatOpenAI(model_name="gpt-4", temperature=0, request_timeout=180)
     fast_llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
 
-    tools = load_tools(["google-search-results-json"], llm=fast_llm)
+    tools = []
+    # tools = load_tools(["google-search-results-json"], llm=fast_llm)
     # tools.append(WebpageQATool(qa_chain=load_qa_with_sources_chain(llm)))
     tools.append(
         WriteFileTool(
@@ -92,8 +93,8 @@ def make_tools(memory: VectorStore):
 
 
 def main(arxiv_link: str):
-    keys = get_creds("auto_wiki/credentials.json")
-    memory = create_memory(in_memory=False, keys=keys)
+    keys = get_creds()
+    memory = create_memory(in_memory=True, keys=keys)
     tools = make_tools(memory)
 
     agent = AutoWikiGPT.from_llm_and_tools(

@@ -28,14 +28,14 @@ def get_creds(cred_path: str = None):
     assert (
         keys["openai_api_key"] is not None
     ), "could not find openai_api_key in environment"
-    assert (
-        keys["pinecone_api_key"] is not None
-    ), "could not find pinecone_api_key in environment"
-    assert (
-        keys["google_cse_id"] is not None
-    ), "could not find google_cse_id in environment"
-    assert (
-        keys["google_api_key"] is not None
-    ), "could not find google_api_key in environment"
+    # assert (
+    #     keys["pinecone_api_key"] is not None
+    # ), "could not find pinecone_api_key in environment"
+    # assert (
+    #     keys["google_cse_id"] is not None
+    # ), "could not find google_cse_id in environment"
+    # assert (
+    #     keys["google_api_key"] is not None
+    # ), "could not find google_api_key in environment"
 
     return keys
