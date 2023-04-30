@@ -53,18 +53,20 @@ class TaskCreationChain(LLMChain):
     ) -> LLMChain:
         """Get the response parser."""
         task_creation_template = (
-            "You are a task creation AI that uses the result of an execution agent"
-            " to create new tasks with the following objective: \n{objective}\n"
-            "You only have access to the following tools. Only create tasks that use these tools.\n"
+            "You are a task creation AI that uses the result of an execution agent "
+            "to create new tasks with the following objective: \n{objective}\n"
+            "You only have access to the following commands. Only create tasks that use these commands.\n"
             + get_tool_prompt(tools)
-            + "Each todo item needs to use EXACTLY one command."
-            " The last completed task has the result: \n{result}\n"
-            " previously you've completed the following tasks: \n{completed_tasks}\n"
-            " This result was based on this task description: \n{task_description}\n"
-            " These are incomplete tasks: \n{incomplete_tasks}\n"
-            " Based on the result, create new tasks to be completed"
-            " by the AI system that do not overlap with incomplete tasks."
-            " Return the tasks as a numbered list of short sentences."
+            + "Each todo item needs to use EXACTLY one command. "
+            "The last completed task has the result: \n{result}\n"
+            "This result was based on this task description: \n{task_description}\n"
+            "previously you've completed the following tasks: \n{completed_tasks}\n"
+            "These are your saved incomplete tasks: \n{incomplete_tasks}\n"
+            "Make sure new tasks do not overlap with incomplete and completed tasks."
+            'Use the "Finish" command when you are done. '
+            "Based on the result, create new tasks to be completed "
+            "by the AI system that do not overlap with incomplete tasks. "
+            "Return the tasks as a numbered list of short sentences."
         )
         prompt = PromptTemplate(
             template=task_creation_template,
@@ -88,14 +90,15 @@ class TaskPrioritizationChain(LLMChain):
     ) -> LLMChain:
         """Get the response parser."""
         task_prioritization_template = (
-            "You are a task prioritization AI tasked with cleaning the formatting of and reprioritizing"
-            " the following tasks: \n{task_names}\n"
+            "You are a task prioritization AI tasked with cleaning the formatting of and reprioritizing "
+            "the following tasks: \n{task_names}\n"
             "Previously you completed the following tasks: \n{completed_tasks}\n"
-            " You only have access to the following tools. Only create tasks that use these tools.\n"
+            "You only have access to the following tools. Only create tasks that use these tools.\n"
             + get_tool_prompt(tools)
             + "Each todo item needs to use EXACTLY one command. "
             "Consider the ultimate objective of your team: \n{objective}\n"
             "Incorporate all feedback from this critique of the task list: \n{critique}\n"
+            'Use the "Finish" command when you are done. '
             "Keep the task list as short as possible by removing tasks that are irrelevant to the objective. tasksReturn the result as a numbered list, like:"
             " #. First task"
             " #. Second task"
@@ -122,18 +125,19 @@ class TaskCriticChain(LLMChain):
         cls, llm: BaseLLM, tools: List[BaseTool], verbose: bool = False
     ) -> LLMChain:
         task_critic_template = (
-            "You are a critic AI that works with other AIs to complete an objective by using a task list."
-            " As the critic you must give feedback about the task list in order to keep the list as small as possible and relevant to completing the ultimate objective."
-            " You need to make sure all irrelevant tasks are removed."
-            " For example, If the objective is to make a sandwich, then the task 'buy bread' is irrelevant."
-            " If the objective is to write documentation, then the tasks to make a video or promote the documentation are irrelevant."
-            " You only have access to the following tools. Make sure all tasks use these tools.\n"
+            "You are a critic AI that works with other AIs to complete an objective by using a task list. "
+            "As the critic you must give feedback about the task list in order to keep the list as small as possible and relevant to completing the ultimate objective. "
+            "You need to make sure all irrelevant tasks are removed. "
+            "For example, If the objective is to make a sandwich, then the task 'buy bread' is irrelevant. "
+            "If the objective is to write documentation, then the tasks to make a video or promote the documentation are irrelevant. "
+            "You only have access to the following tools. Make sure all tasks use these tools.\n"
             + get_tool_prompt(tools)
-            + "Each todo item needs to use EXACTLY one command."
-            " Only give feedback about the task list. Do not rewrite the task list."
-            " The ultimate objective is:\n{objective}\n"
+            + "Each todo item needs to use EXACTLY one command. Two commands CANNOT be combined into one task. "
+            "Only give feedback about the task list. Do not rewrite the task list. "
+            "The ultimate objective is:\n{objective}\n"
             "Previously you completed the following tasks: \n{completed_tasks}\n"
             "The new task list is: \n{task_names}\n"
+            "New tasks should NOT be the same as any of the completed tasks. "
             "Write a critique of the task list as a short paragraph. Include actions to improve the task list such as items to remove or combine. Be specific about which task as numbers may repeat."
         )
         prompt = PromptTemplate(

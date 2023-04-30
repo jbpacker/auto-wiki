@@ -48,9 +48,8 @@ Auto-Wiki uses Poetry for dependency management. To install the project, follow 
 
 3. Run the main script with the desired input:
 
-   NOTE: Currently you must manually enter the arxiv link in `run.py`
    ```
-   poetry run python auto_wiki/run.py
+   poetry run python auto_wiki/run.py https://arxiv.org/pdf/link.to.paper.pdf
    ```
 
 4. The summarized and compared research paper will be generated in the `output` directory.

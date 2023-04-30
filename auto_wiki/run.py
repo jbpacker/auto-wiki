@@ -1,3 +1,4 @@
+import argparse
 from typing import Dict, List, Optional, Any
 import pinecone
 import faiss
@@ -89,9 +90,9 @@ def make_tools(memory: VectorStore):
     return tools
 
 
-def main():
+def main(arxiv_link: str):
     keys = get_creds("auto_wiki/credentials.json")
-    memory = create_memory(in_memory=True, keys=keys)
+    memory = create_memory(in_memory=False, keys=keys)
     tools = make_tools(memory)
 
     agent = AutoWikiGPT.from_llm_and_tools(
@@ -101,17 +102,24 @@ def main():
         verbose=False,  # prints out prompts to models
     )
 
-    # document = "https://arxiv.org/pdf/2303.16199.pdf" # Llama-Adaptor
-    # document = "https://arxiv.org/pdf/2302.04761.pdf"  # Toolformer
-    document = "https://arxiv.org/pdf/2210.03629.pdf"  # ReAct
-
     prompt = (
-        "Summarize this new document and integrate it into the wiki in the same format as the rest of the wiki. Document: "
-        + document
+        "Summarize this document and integrate it into the wiki in the same format as the rest of the wiki. Document: "
+        + arxiv_link
     )
 
     agent({"objective": prompt})
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        prog="Auto-Wiki",
+        description="Automatic wiki generation for research papers",
+    )
+    parser.add_argument(
+        "arxiv_link",
+        type=str,
+        help="Link to an arxiv paper to summarize and add to the wiki.",
+    )
+    args = parser.parse_args()
+
+    main(args.arxiv_link)
