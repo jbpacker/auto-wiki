@@ -32,9 +32,10 @@ class TodoChain(LLMChain):
     ) -> LLMChain:
         todo_template = (
             "You are a planner who is an expert at coming up with a todo list for a given objective."
-            "You have access to the following tools: \n"
+            "You have access to the following commands: \n"
             + get_tool_prompt(other_tools)
-            + "Create a todo list for this objective: {objective}\n\n"
+            + "Each todo item should use exactly one command."
+            " Create a todo list for this objective: {objective}\n\n"
         )
         prompt = PromptTemplate(
             template=todo_template,
@@ -56,7 +57,8 @@ class TaskCreationChain(LLMChain):
             " to create new tasks with the following objective: \n{objective}\n"
             "You only have access to the following tools. Only create tasks that use these tools.\n"
             + get_tool_prompt(tools)
-            + "The last completed task has the result: \n{result}\n"
+            + "Each todo item needs to use EXACTLY one command."
+            " The last completed task has the result: \n{result}\n"
             " previously you've completed the following tasks: \n{completed_tasks}\n"
             " This result was based on this task description: \n{task_description}\n"
             " These are incomplete tasks: \n{incomplete_tasks}\n"
@@ -91,7 +93,8 @@ class TaskPrioritizationChain(LLMChain):
             "Previously you completed the following tasks: \n{completed_tasks}\n"
             " You only have access to the following tools. Only create tasks that use these tools.\n"
             + get_tool_prompt(tools)
-            + "Consider the ultimate objective of your team: \n{objective}\n"
+            + "Each todo item needs to use EXACTLY one command. "
+            "Consider the ultimate objective of your team: \n{objective}\n"
             "Incorporate all feedback from this critique of the task list: \n{critique}\n"
             "Keep the task list as short as possible by removing tasks that are irrelevant to the objective. tasksReturn the result as a numbered list, like:"
             " #. First task"
@@ -126,7 +129,8 @@ class TaskCriticChain(LLMChain):
             " If the objective is to write documentation, then the tasks to make a video or promote the documentation are irrelevant."
             " You only have access to the following tools. Make sure all tasks use these tools.\n"
             + get_tool_prompt(tools)
-            + "Only give feedback about the task list. Do not rewrite the task list."
+            + "Each todo item needs to use EXACTLY one command."
+            " Only give feedback about the task list. Do not rewrite the task list."
             " The ultimate objective is:\n{objective}\n"
             "Previously you completed the following tasks: \n{completed_tasks}\n"
             "The new task list is: \n{task_names}\n"

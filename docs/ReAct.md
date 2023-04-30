@@ -1,0 +1,9 @@
+## 2210.03629
+ReAct: Synergizing Reasoning and Acting in Language Models
+Authors: Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik Narasimhan, Yuan Cao
+
+ReAct is a novel approach that synergizes reasoning and acting in large language models (LLMs) for solving diverse language reasoning and decision-making tasks. It prompts LLMs to generate both verbal reasoning traces and task-specific actions in an interleaved manner, allowing the model to perform dynamic reasoning to create, maintain, and adjust high-level plans for acting while also interacting with external environments, such as Wikipedia, to incorporate additional information into reasoning. Applied to a diverse set of language and decision-making tasks, ReAct demonstrates its effectiveness over state-of-the-art baselines, as well as improved human interpretability and trustworthiness.
+
+The approach is tested on two datasets, HotPotQA and FEVER, and shows promising results in combining internal and external knowledge for reasoning tasks. ReAct outperforms acting-only prompts and provides more grounded, fact-driven, and trustworthy problem-solving trajectories. The authors propose strategies to combine ReAct with other methods, such as CoT-SC, to further improve performance.
+
+ReAct is also tested on two language-based interactive decision-making tasks, ALFWorld and WebShop, both of which feature complex environments that require agents to act over long horizons with sparse rewards, warranting the need for reasoning to act and explore effectively. ReAct outperforms Act on both ALFWorld and Webshop, achieving significantly better performance and demonstrating the value of internal reasoning in interactive environments. The ReAct approach also enables new forms of human-machine collaboration, allowing humans to inspect and edit the model's reasoning traces for better task solving.

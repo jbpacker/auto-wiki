@@ -54,12 +54,27 @@ def make_tools(memory: VectorStore):
 
     tools = load_tools(["google-search-results-json"], llm=fast_llm)
     # tools.append(WebpageQATool(qa_chain=load_qa_with_sources_chain(llm)))
-    tools.append(WriteFileTool(root_dir="./docs"))
-    tools.append(ReadFileTool(root_dir="./docs"))
-    tools.append(ListDirectoryTool(root_dir="./docs"))
+    tools.append(
+        WriteFileTool(
+            root_dir="./docs",
+            description="Write to local file on disk. Does NOT work for urls or websites. Text MUST be formatted as a markdown file that's easy to read. Input: file_path: local file path, text: the text to write, append: to concatenate the text or replace it.",
+        )
+    )
+    tools.append(
+        ReadFileTool(
+            root_dir="./docs",
+            description="Read a single local file from disk. Does NOT work for urls or websites. Input: file path.",
+        )
+    )
+    tools.append(
+        ListDirectoryTool(
+            root_dir="./docs",
+            description="List files and directories in the wiki. Use this before reading or writing to files to understand the file structure. Input: file path to show.",
+        )
+    )
     tools.append(ArxivQueryRun(api_wrapper=ArxivAPIWrapper()))
-    tools.append(MemorizeTool(memory=memory))
-    tools.append(RecallTool.from_llm(llm=llm, memory=memory))
+    # tools.append(MemorizeTool(memory=memory))
+    # tools.append(RecallTool.from_llm(llm=llm, memory=memory))
     tools.append(UrlSummaryTool.from_llm(llm=llm))
 
     # This one must be last to include the other tools in the prompt.
@@ -86,10 +101,12 @@ def main():
         verbose=False,  # prints out prompts to models
     )
 
-    document = "https://arxiv.org/pdf/2303.16199.pdf"
+    # document = "https://arxiv.org/pdf/2303.16199.pdf" # Llama-Adaptor
+    # document = "https://arxiv.org/pdf/2302.04761.pdf"  # Toolformer
+    document = "https://arxiv.org/pdf/2210.03629.pdf"  # ReAct
 
     prompt = (
-        "summarize and integrate the following document into the resource wiki: "
+        "Summarize this new document and integrate it into the wiki in the same format as the rest of the wiki. Document: "
         + document
     )
 
