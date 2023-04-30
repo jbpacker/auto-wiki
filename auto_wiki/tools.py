@@ -16,6 +16,7 @@ from langchain.agents.agent_toolkits.pandas.base import create_pandas_dataframe_
 from langchain.chains.combine_documents.refine import RefineDocumentsChain
 from langchain.chains.qa_with_sources.loading import BaseCombineDocumentsChain
 from langchain.chat_models import ChatOpenAI
+from langchain.document_loaders import PyPDFLoader
 from langchain.docstore.document import Document
 from langchain.requests import TextRequestsWrapper
 from langchain.llms.base import BaseLLM
@@ -86,6 +87,9 @@ class WebpageQATool(BaseTool):
 
     def _run(self, url: str, question: str) -> str:
         """Useful for browsing websites and scraping the text information."""
+        if url[-3:] == "pdf":
+            return "This tool does not support PDFs."
+
         result = browse_web_page.run(url)
         docs = [Document(page_content=result, metadata={"source": url})]
         web_docs = self.text_splitter.split_documents(docs)
@@ -121,8 +125,15 @@ class MemorizeTool(BaseTool):
     memory: VectorStore
 
     def _run(self, url: str) -> str:
-        result = browse_web_page.run(url)
-        docs = [Document(page_content=result, metadata={"source": url})]
+        if url[-3:] == "pdf":
+            try:
+                loader = PyPDFLoader(url)
+                docs = loader.load_and_split()
+            except:
+                return "Unable to load website (PDF)."
+        else:
+            result = browse_web_page.run(url)
+            docs = [Document(page_content=result, metadata={"source": url})]
         docs = self.text_splitter.split_documents(docs)
         self.memory.add_documents(docs)
 
@@ -205,13 +216,21 @@ class UrlSummaryTool(BaseTool):
 
     # This is for Auto-GPT where it always gives a dict
     def _run(self, url: str, topic: str) -> str:
-        try:
-            page = self.requests_wrapper.get(url)
-        except:
-            return "Unable to load website."
+        if url[-3:] == "pdf":
+            try:
+                loader = PyPDFLoader(url)
+                pages = loader.load_and_split()
+                text = "".join([p.page_content for p in pages])
+            except:
+                return "Unable to load website (PDF)."
+        else:
+            try:
+                page = self.requests_wrapper.get(url)
+                text = BeautifulSoup(page, "html.parser").get_text()
+            except:
+                return "Unable to load website."
 
-        page_text = BeautifulSoup(page, "html.parser").get_text()
-        return self.refine_chain.run(**{"document": page_text, "topic": topic})
+        return self.refine_chain.run(**{"document": text, "topic": topic})
 
     async def _arun(self, input: str) -> str:
         raise NotImplementedError

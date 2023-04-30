@@ -53,13 +53,13 @@ def make_tools(memory: VectorStore):
     fast_llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
 
     tools = load_tools(["google-search-results-json"], llm=fast_llm)
-    tools.append(WebpageQATool(qa_chain=load_qa_with_sources_chain(llm)))
+    # tools.append(WebpageQATool(qa_chain=load_qa_with_sources_chain(llm)))
     tools.append(WriteFileTool(root_dir="./docs"))
     tools.append(ReadFileTool(root_dir="./docs"))
     tools.append(ListDirectoryTool(root_dir="./docs"))
     tools.append(ArxivQueryRun(api_wrapper=ArxivAPIWrapper()))
-    # tools.append(MemorizeTool(memory=memory))
-    # tools.append(RecallTool.from_llm(llm=llm, memory=memory))
+    tools.append(MemorizeTool(memory=memory))
+    tools.append(RecallTool.from_llm(llm=llm, memory=memory))
     tools.append(UrlSummaryTool.from_llm(llm=llm))
 
     # This one must be last to include the other tools in the prompt.

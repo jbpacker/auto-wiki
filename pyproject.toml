@@ -20,6 +20,7 @@ arxiv = "^1.4.7"
 openai = "^0.27.5"
 google-api-python-client = "^2.86.0"
 tiktoken = "^0.3.3"
+pypdf = "^3.8.1"
 
 
 [tool.poetry.group.dev.dependencies]

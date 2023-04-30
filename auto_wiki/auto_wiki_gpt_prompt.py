@@ -168,7 +168,7 @@ class AutoWikiGPTPrompt(BaseChatPromptTemplate, BaseModel):
         memory_message = SystemMessage(content=content_format)
         used_tokens += len(memory_message.content)
         final_message = SystemMessage(
-            content="Create a command to do the task. Remember to use the response format. Begin!\n"
+            content="Create a command to do the CURRENT TASK. Remember to use the response format. Begin!\n"
         )
         messages: List[BaseMessage] = [
             base_prompt,
